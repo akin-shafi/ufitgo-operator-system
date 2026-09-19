@@ -25,14 +25,21 @@ function getPaymentJourney(booking) {
   const fullyPaid = isLegacyPackagePaid && registrationAmount <= registrationPaid || (payable > 0 && paid >= payable)
   const registrationDue = !fullyPaid && packageCost > 0 && packagePaid >= packageCost && registrationAmount > registrationPaid
 
-  const stages = [
-    { key: "registration", label: "Registration fee", amount: registrationAmount, paid: registrationPaid, enabled: registrationAmount > 0 || Boolean(payment.registration?.enabled) },
-    { key: "initial", label: "Initial payment", amount: Number(payment.initialPayment?.amount ?? packageCost), paid: Number(payment.initialPayment?.paid ?? (packagePaid >= packageCost ? packageCost : packagePaid)), enabled: Boolean(payment.initialPayment?.enabled) || packageCost > 0 },
-    { key: "final", label: "Final balance", amount: Number(payment.finalBalance?.amount ?? 0), paid: Number(payment.finalBalance?.paid ?? 0), enabled: Boolean(payment.finalBalance?.enabled) },
-  ].map((stage) => {
+  const policy = booking.paymentPolicy || {}
+  const sourceStages = Array.isArray(booking.paymentStages) ? booking.paymentStages : [
+    { key: "REGISTRATION", label: "Registration fee", amount: registrationAmount, paid: registrationPaid, enabled: registrationAmount > 0 || Boolean(payment.registration?.enabled) },
+    ...(policy.mode === "INSTALLMENTS" || (!policy.mode && (payment.initialPayment || payment.finalBalance))
+      ? [
+          { key: "INITIAL_PAYMENT", label: "Initial payment", amount: Number(payment.initialPayment?.amount ?? packageCost), paid: Number(payment.initialPayment?.paid ?? (packagePaid >= packageCost ? packageCost : packagePaid)), enabled: Boolean(payment.initialPayment?.enabled) || packageCost > 0 },
+          { key: "FINAL_PAYMENT", label: "Final balance", amount: Number(payment.finalBalance?.amount ?? 0), paid: Number(payment.finalBalance?.paid ?? 0), enabled: Boolean(payment.finalBalance?.enabled) },
+        ]
+      : [{ key: "FULL_PAYMENT", label: "Full package payment", amount: packageCost, paid: packagePaid, enabled: packageCost > 0 }]),
+  ]
+  const stages = sourceStages.map((stage) => {
     const stagePaid = isLegacyPackagePaid && stage.key !== "registration" ? stage.amount : stage.paid
-    const status = !stage.enabled ? "NOT_APPLICABLE" : stagePaid >= stage.amount && stage.amount > 0 ? "PAID" : stagePaid > 0 ? "PARTIALLY_PAID" : "DUE"
-    return { ...stage, paid: stagePaid, status }
+    const isOverdue = stage.key === "FINAL_PAYMENT" && policy.finalPaymentStatus === "OVERDUE"
+    const status = !stage.enabled ? "NOT_APPLICABLE" : isOverdue && stagePaid < stage.amount ? "OVERDUE" : stagePaid >= stage.amount && stage.amount > 0 ? "PAID" : stagePaid > 0 ? "PARTIALLY_PAID" : "DUE"
+    return { ...stage, key: stage.key.toLowerCase(), paid: stagePaid, status }
   })
 
   return { stages, paid, payable, outstanding: Math.max(0, payable - paid), fullyPaid, registrationDue }
@@ -42,6 +49,7 @@ function stageTone(status) {
   if (status === "PAID") return "border-emerald-200 bg-emerald-50 text-emerald-700"
   if (status === "PARTIALLY_PAID") return "border-blue-200 bg-blue-50 text-blue-700"
   if (status === "DUE") return "border-amber-200 bg-amber-50 text-amber-700"
+  if (status === "OVERDUE") return "border-red-200 bg-red-50 text-red-700"
   return "border-border bg-bg text-fg/50"
 }
 

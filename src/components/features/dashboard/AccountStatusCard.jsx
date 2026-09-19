@@ -25,11 +25,14 @@ const STATUS_STYLES = {
   },
 }
 
-export const AccountStatusCard = ({ verification, metrics }) => {
-  const verificationStatus =
-    verification?.verificationStatus ||
-    verification?.status ||
-    "pending"
+export const AccountStatusCard = ({ verification, documentVerification, metrics }) => {
+  const verificationStatus = documentVerification
+    ? documentVerification.isFullyVerified
+      ? "approved"
+      : documentVerification.documentsPending > 0
+        ? "pending"
+        : "unverified"
+    : "pending"
 
   const tier =
     verification?.tier ||

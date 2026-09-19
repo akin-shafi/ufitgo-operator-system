@@ -11,6 +11,7 @@ import { tierService } from "../../api/services/tier.service.js"
 import { bookingsService } from "../../api/services/bookings.service.js"
 import { packagesService } from "../../api/services/packages.service.js"
 import { settlementService } from "../../api/services/settlement.service.js"
+import { verificationService } from "../../api/services/verification.service.js"
 import { useAuth } from "../../context/AuthContext"
 
 export default function DashboardScreen() {
@@ -19,6 +20,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true)
   const [metrics, setMetrics] = useState(null)
   const [verification, setVerification] = useState(null)
+  const [documentVerification, setDocumentVerification] = useState(null)
   const [bookings, setBookings] = useState([])
   const [packages, setPackages] = useState([])
   const [hasBankAccount, setHasBankAccount] = useState(false)
@@ -38,6 +40,7 @@ export default function DashboardScreen() {
         trustScoreData,
         performanceData,
         bankData,
+        documentData,
       ] = await Promise.allSettled([
         tierService.getTierInfo(),
         bookingsService.getAll(),
@@ -45,10 +48,27 @@ export default function DashboardScreen() {
         tierService.getTrustScore(),
         tierService.getPerformance(),
         settlementService.getBankAccount(),
+        verificationService.getDocuments(),
       ])
 
       if (tierData.status === "fulfilled") {
         setVerification(tierData.value.data || tierData.value)
+      }
+
+      if (documentData.status === "fulfilled") {
+        const documents = documentData.value.data || documentData.value
+        const documentList = Array.isArray(documents) ? documents : []
+        const requiredTypes = ["cac", "license"]
+        const approvedTypes = new Set(
+          documentList.filter((document) => document.status === "approved").map((document) => String(document.type).toLowerCase()),
+        )
+        setDocumentVerification({
+          documentsUploaded: documentList.length,
+          documentsApproved: documentList.filter((document) => document.status === "approved").length,
+          documentsPending: documentList.filter((document) => ["pending", "under_review"].includes(document.status)).length,
+          documentsRejected: documentList.filter((document) => document.status === "rejected").length,
+          isFullyVerified: requiredTypes.every((type) => approvedTypes.has(type)),
+        })
       }
 
       if (bookingsData.status === "fulfilled") {
@@ -228,7 +248,7 @@ export default function DashboardScreen() {
 
         {/* Account Status */}
         <div onClick={() => navigate("/verification")} className="cursor-pointer">
-          <AccountStatusCard verification={verification} metrics={metrics} />
+          <AccountStatusCard verification={verification} documentVerification={documentVerification} metrics={metrics} />
         </div>
       </div>
     </DashboardLayout>
