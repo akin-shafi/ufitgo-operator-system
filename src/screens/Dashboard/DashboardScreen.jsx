@@ -94,8 +94,12 @@ export default function DashboardScreen() {
 
   const pendingBookings = bookings.filter((b) => b.status === "pending").length
   const confirmedBookings = bookings.filter((b) => b.status === "confirmed").length
-  const totalBookings = metrics?.performance?.totalBookings || 0
-  const monthlyBookings = metrics?.performance?.currentMonthBookings || 0
+  const totalBookings = metrics?.performance?.totalBookings || bookings.length
+  const monthlyBookings = metrics?.performance?.currentMonthBookings || bookings.filter((booking) => {
+    const createdAt = new Date(booking.createdAt)
+    const now = new Date()
+    return createdAt.getMonth() === now.getMonth() && createdAt.getFullYear() === now.getFullYear()
+  }).length
   const activePackages = metrics?.performance?.activePackages || packages.length
 
   return (
@@ -154,8 +158,38 @@ export default function DashboardScreen() {
               <p className="text-fg/70">No recent bookings</p>
             ) : (
               <div className="space-y-3">
-                {bookings.slice(0, 5).map((booking) => (
-                  <div
+                {bookings.slice(0, 5).map((booking) => {
+                  const payment = booking.paymentBreakdown || {}
+                  const hasNormalizedPayment = Boolean(
+                    payment.totalAmountPayable !== undefined ||
+                    payment.totalPaid !== undefined ||
+                    payment.registration ||
+                    payment.initialPayment ||
+                    payment.finalBalance,
+                  )
+                  const totalPayable = Number(payment.totalAmountPayable ?? booking.totalAmountPayable ?? booking.totalAmount ?? 0)
+                  const rawPaid = Number(booking.totalPaid ?? booking.amountPaid ?? 0)
+                  const normalizedPaid = Number(payment.totalPaid ?? 0)
+                  const totalPaid = booking.status === "fully_paid" && normalizedPaid === 0 && rawPaid > 0 ? rawPaid : (payment.totalPaid ?? booking.totalPaid ?? booking.amountPaid ?? 0)
+                  const registrationPaid = Number(payment.registration?.paid || 0)
+                  const packagePaid = payment.initialPayment || payment.finalBalance
+                    ? Number(payment.initialPayment?.paid || 0) + Number(payment.finalBalance?.paid || 0)
+                    : totalPaid
+                  const displayedStatus = !hasNormalizedPayment && booking.status === "fully_paid"
+                    ? "fully_paid"
+                    : totalPayable > 0 && totalPaid >= totalPayable
+                    ? "fully_paid"
+                    : packagePaid >= Number(payment.packageCost || 0) && Number(payment.registration?.balance || 0) > 0
+                      ? "registration_due"
+                    : registrationPaid > 0 && packagePaid === 0
+                      ? "registration_paid"
+                      : packagePaid > 0
+                        ? "deposit_paid"
+                        : booking.status === "fully_paid"
+                          ? "payment_pending"
+                          : booking.status || "pending"
+
+                  return <div
                     key={booking.id}
                     onClick={() => navigate(`/bookings/${booking.id}`)}
                     className="flex justify-between items-center p-3 rounded-lg
@@ -167,26 +201,26 @@ export default function DashboardScreen() {
                       </p>
                       <p className="text-sm text-fg/70">
                         {booking.numberOfPilgrims} pilgrim(s) · ₦
-                        {Number(booking.paymentBreakdown?.totalPaid ?? booking.amountPaid ?? 0).toLocaleString()}
-                        {booking.paymentBreakdown?.totalAmountPayable ? ` / ₦${Number(booking.paymentBreakdown.totalAmountPayable).toLocaleString()}` : " paid"}
+                        {Number(totalPaid).toLocaleString()}
+                        {totalPayable > 0 ? ` / ₦${totalPayable.toLocaleString()}` : " paid"}
                       </p>
                     </div>
 
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium capitalize
-                        ${booking.status === "confirmed"
+                        ${displayedStatus === "confirmed"
                           ? "bg-green-500/10 text-green-600"
-                          : booking.status === "pending"
+                          : displayedStatus === "pending" || displayedStatus === "payment_pending" || displayedStatus === "registration_due"
                             ? "bg-yellow-500/10 text-yellow-600"
-                            : booking.status === "deposit_paid"
+                            : displayedStatus === "registration_paid" || displayedStatus === "deposit_paid"
                               ? "bg-blue-500/10 text-blue-600"
                               : "bg-gray-500/10 text-gray-600"
                         }`}
                     >
-                      {booking.status.replace("_", " ")}
+                      {displayedStatus === "registration_due" ? "Package paid · registration due" : displayedStatus.replaceAll("_", " ")}
                     </span>
                   </div>
-                ))}
+                })}
               </div>
             )}
           </div>

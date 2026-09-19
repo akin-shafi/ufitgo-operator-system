@@ -2,8 +2,8 @@ import { apiClient } from "../client.js"
 import { ENDPOINTS } from "../endpoints.js"
 
 export const bookingsService = {
-  getAll: async () => {
-    return await apiClient.get(ENDPOINTS.BOOKINGS.LIST)
+  getAll: async (search = "") => {
+    return await apiClient.get(ENDPOINTS.BOOKINGS.LIST, { params: search ? { search } : undefined })
   },
 
   getById: async (id) => {

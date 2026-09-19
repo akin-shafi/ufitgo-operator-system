@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom"
+import { ArrowUpRight } from "lucide-react"
 
 export const StatCard = ({ title, value, subtitle, icon, trend, to }) => {
   const navigate = useNavigate()
@@ -6,7 +7,10 @@ export const StatCard = ({ title, value, subtitle, icon, trend, to }) => {
   return (
     <div
       onClick={to ? () => navigate(to) : undefined}
-      className={`card ${to ? "cursor-pointer hover:shadow-md hover:border-primary/30 transition-all" : ""}`}
+      onKeyDown={to ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); navigate(to) } } : undefined}
+      role={to ? "link" : undefined}
+      tabIndex={to ? 0 : undefined}
+      className={`card relative ${to ? "group cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30" : ""}`}
     >
       <div className="flex items-start justify-between">
         <div>
@@ -35,6 +39,8 @@ export const StatCard = ({ title, value, subtitle, icon, trend, to }) => {
           </div>
         )}
       </div>
+
+      {to && <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary opacity-70 transition-opacity group-hover:opacity-100">View details <ArrowUpRight className="size-3.5" /></div>}
 
       {/* Trend */}
       {trend && (

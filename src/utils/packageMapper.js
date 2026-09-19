@@ -78,7 +78,7 @@ export const mapFormPayloadToApiPayload = (payload) => {
     initialDeposit: payload.installments?.firstDeposit ?? null,
     finalBalance: payload.installments?.balance ?? null,
 
-    registrationFeeEnabled: !!(payload.installmentsEnabled && hasRegistrationFee),
+    registrationFeeEnabled: hasRegistrationFee,
     registrationFeeAmount: hasRegistrationFee ? payload.installments.registrationFee : null,
 
     groupDiscountEnabled: payload.groupDiscountEnabled,

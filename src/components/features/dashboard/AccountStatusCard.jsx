@@ -1,4 +1,5 @@
 import { Card } from "../../common/Card"
+import { ArrowRight } from "lucide-react"
 
 const STATUS_STYLES = {
   approved: {
@@ -48,7 +49,7 @@ export const AccountStatusCard = ({ verification, metrics }) => {
         : STATUS_STYLES.unverified
 
   return (
-    <Card>
+    <Card className="group transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
       {/* Status Banner */}
       <div
         className={`p-4 rounded-lg border mb-4 ${status.wrapper}`}
@@ -90,6 +91,10 @@ export const AccountStatusCard = ({ verification, metrics }) => {
             {metrics?.performance?.activePackages || 0}
           </span>
         </div>
+      </div>
+
+      <div className="mt-5 flex items-center justify-end gap-1 text-xs font-semibold text-primary opacity-80 transition-opacity group-hover:opacity-100">
+        Open verification <ArrowRight className="size-3.5" />
       </div>
     </Card>
   )

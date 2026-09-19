@@ -126,7 +126,6 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
   }, [formData.isGroupPackage, formData.prices])
 
   const installmentTotal =
-    Number(formData.installments.registrationFee || 0) +
     Number(formData.installments.firstDeposit || 0) +
     Number(formData.installments.balance || 0)
 
@@ -149,6 +148,19 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
     setFormData((prev) => ({
       ...prev,
       installments: { ...prev.installments, [name]: value },
+    }))
+  }
+
+  const applyPaymentSplit = (initialPercent) => {
+    const initialAmount = Math.round(totalPrice * (initialPercent / 100))
+    setFormData((prev) => ({
+      ...prev,
+      installmentsEnabled: true,
+      installments: {
+        ...prev.installments,
+        firstDeposit: String(initialAmount),
+        balance: String(Math.max(totalPrice - initialAmount, 0)),
+      },
     }))
   }
 
@@ -357,12 +369,25 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
             )}
           </section>
 
-          {/* Installments */}
+          {/* Payment plan */}
           <section className="bg-card border border-border rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-fg mb-4">Installments</h2>
+            <h2 className="text-lg font-semibold text-fg mb-1">Payment plan</h2>
+            <p className="text-sm text-fg/60 mb-5">Registration fees are separate from the package cost. Installment splits apply only to the package price.</p>
+
+            <Input
+              label="Registration Fee (₦) - optional"
+              name="registrationFee"
+              type="number"
+              value={formData.installments.registrationFee}
+              onChange={handleInstallmentChange}
+              placeholder="Leave empty if not applicable"
+            />
 
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-fg">Enable Installments?</span>
+              <div>
+                <span className="text-sm font-medium text-fg">Allow initial payment and final balance?</span>
+                <p className="mt-1 text-xs text-fg/60">Turn off for full package payment.</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setFormData((p) => ({ ...p, installmentsEnabled: !p.installmentsEnabled }))}
@@ -376,16 +401,16 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
 
             {formData.installmentsEnabled && (
               <div className="space-y-3">
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div><p className="text-sm font-semibold text-fg">Suggested split</p><p className="mt-1 text-xs text-fg/60">Package cost: ₦{totalPrice.toLocaleString()}</p></div>
+                    <div className="flex flex-wrap gap-2">
+                      {[{ label: "50 / 50", value: 50 }, { label: "30 / 70", value: 30 }, { label: "60 / 40", value: 60 }].map((split) => <button key={split.value} type="button" onClick={() => applyPaymentSplit(split.value)} disabled={!totalPrice} className="rounded-lg border border-primary/25 bg-card px-3 py-2 text-xs font-bold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50">{split.label}</button>)}
+                    </div>
+                  </div>
+                </div>
                 <Input
-                  label="Registration Fee (₦)"
-                  name="registrationFee"
-                  type="number"
-                  value={formData.installments.registrationFee}
-                  onChange={handleInstallmentChange}
-                  placeholder="e.g 100000"
-                />
-                <Input
-                  label="First Deposit (₦)"
+                  label="Initial Payment (₦)"
                   name="firstDeposit"
                   type="number"
                   value={formData.installments.firstDeposit}

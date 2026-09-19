@@ -1,10 +1,15 @@
 import { useRef, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { Search, X } from "lucide-react"
+import { bookingsService } from "../../api/services/bookings.service"
 import { useAuth } from "../../context/AuthContext"
 
 export const Header = ({ title, onMenuClick }) => {
   const { operator, logout } = useAuth()
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const [results, setResults] = useState([])
+  const [searching, setSearching] = useState(false)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
 
@@ -35,6 +40,18 @@ export const Header = ({ title, onMenuClick }) => {
     setOpen(false)
     navigate("/settings")
   }
+
+  useEffect(() => {
+    const term = search.trim()
+    if (!term) { setResults([]); return undefined }
+    const timer = window.setTimeout(async () => {
+      setSearching(true)
+      try { setResults(await bookingsService.getAll(term) || []) } catch { setResults([]) } finally { setSearching(false) }
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
+  const openBooking = (id) => { setSearch(""); setResults([]); navigate(`/bookings/${id}`) }
 
   /** Derive initials from company name or email */
   const initials = (() => {
@@ -73,6 +90,13 @@ export const Header = ({ title, onMenuClick }) => {
           <h1 className="text-lg lg:text-xl font-bold text-fg truncate">
             {title}
           </h1>
+        </div>
+
+        <div className="relative hidden min-w-0 flex-1 max-w-md lg:block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg/40" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search booking ID or applicant" className="input-field h-10 pl-9 pr-9" />
+          {search && <button type="button" onClick={() => setSearch("")} className="ui-icon-button absolute right-1 top-1/2 size-8 -translate-y-1/2"><X className="size-4" /></button>}
+          {search && <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-border bg-card shadow-xl">{searching ? <p className="p-4 text-sm text-fg/60">Searching…</p> : results.length ? results.slice(0, 6).map((booking) => <button key={booking.id} type="button" onClick={() => openBooking(booking.id)} className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left last:border-0 hover:bg-bg"><span><span className="block text-sm font-semibold text-fg">{booking.bookingRef || `Booking #${booking.id}`}</span><span className="block text-xs text-fg/60">{booking.pilgrimName || "Applicant"}</span></span><span className="text-xs font-semibold text-primary">Open</span></button>) : <p className="p-4 text-sm text-fg/60">No bookings found.</p>}</div>}
         </div>
 
         {/* Right — profile */}
