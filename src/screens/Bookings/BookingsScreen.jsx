@@ -1,106 +1,43 @@
-
-
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { Search, Users } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { DashboardLayout } from "../../components/layout/DashboardLayout"
 import { Spinner } from "../../components/common/Spinner"
 import { useBookings } from "../../hooks/useBookings"
-import { BookingCard } from "../../components/features/bookings/BookingCard"
 
-const BookingsScreen = () => {
+const money = (value) => `₦${Number(value || 0).toLocaleString("en-NG")}`
+const statusTone = { pending: "bg-yellow-100 text-yellow-800", confirmed: "bg-green-100 text-green-800", completed: "bg-blue-100 text-blue-800", cancelled: "bg-red-100 text-red-800", fully_paid: "bg-emerald-100 text-emerald-800", deposit_paid: "bg-orange-100 text-orange-800" }
+
+export default function BookingsScreen() {
+  const navigate = useNavigate()
   const { bookings, loading, error, updateBookingStatus } = useBookings()
   const [filter, setFilter] = useState("all")
+  const [search, setSearch] = useState("")
   const [updating, setUpdating] = useState(null)
 
-  const handleStatusUpdate = async (id, status) => {
-    try {
-      setUpdating(id)
-      await updateBookingStatus(id, status)
-    } catch (err) {
-      alert("Failed to update booking: " + err.message)
-    } finally {
-      setUpdating(null)
-    }
+  const visibleBookings = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return bookings.filter((booking) => {
+      const matchesStatus = filter === "all" || booking.status === filter
+      const haystack = `${booking.pilgrimName || ""} ${booking.packageName || booking.package?.title || ""} ${booking.bookingRef || ""}`.toLowerCase()
+      return matchesStatus && (!term || haystack.includes(term))
+    })
+  }, [bookings, filter, search])
+
+  const handleStatusUpdate = async (event, id, status) => {
+    event.stopPropagation()
+    try { setUpdating(id); await updateBookingStatus(id, status) } catch (requestError) { alert(`Failed to update booking: ${requestError.message}`) } finally { setUpdating(null) }
   }
 
-  const filteredBookings = bookings.filter((booking) => {
-    if (filter === "all") return true
-    return booking.status === filter
-  })
+  if (loading) return <DashboardLayout title="Bookings"><div className="flex h-64 items-center justify-center"><Spinner /></div></DashboardLayout>
+  if (error) return <DashboardLayout title="Bookings"><div className="card p-8 text-center text-red-600">{error}<button onClick={() => window.location.reload()} className="btn-primary ml-4">Try again</button></div></DashboardLayout>
 
-  if (loading) {
-    return (
-      <DashboardLayout title="Bookings">
-        <div className="flex items-center justify-center h-64">
-          <Spinner />
-        </div>
-      </DashboardLayout>
-    )
-  }
+  const pending = bookings.filter((booking) => booking.status === "pending").length
+  const paymentIssues = bookings.filter((booking) => booking.paymentBreakdown?.totalOutstanding > 0 || booking.status === "deposit_paid").length
 
-  if (error) {
-    return (
-      <DashboardLayout title="Bookings">
-        <div className="text-center py-12">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={() => window.location.reload()} className="btn-primary">
-            Try Again
-          </button>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  return (
-    <DashboardLayout title="Bookings">
-      <div className="mb-6 flex gap-3">
-        <button
-          onClick={() => setFilter("all")}
-          className={`px-4 py-2 rounded-lg font-medium ${filter === "all" ? "bg-primary text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-        >
-          All ({bookings.length})
-        </button>
-        <button
-          onClick={() => setFilter("pending")}
-          className={`px-4 py-2 rounded-lg font-medium ${filter === "pending" ? "bg-primary text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-        >
-          Pending ({bookings.filter((b) => b.status === "pending").length})
-        </button>
-        <button
-          onClick={() => setFilter("confirmed")}
-          className={`px-4 py-2 rounded-lg font-medium ${filter === "confirmed" ? "bg-primary text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-        >
-          Confirmed ({bookings.filter((b) => b.status === "confirmed").length})
-        </button>
-        <button
-          onClick={() => setFilter("completed")}
-          className={`px-4 py-2 rounded-lg font-medium ${filter === "completed" ? "bg-primary text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-        >
-          Completed ({bookings.filter((b) => b.status === "completed").length})
-        </button>
-      </div>
-
-      {filteredBookings.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-600">No {filter !== "all" ? filter : ""} bookings found</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredBookings.map((booking) => (
-            <BookingCard
-              key={booking.id}
-              booking={booking}
-              onStatusUpdate={handleStatusUpdate}
-              isUpdating={updating === booking.id}
-            />
-          ))}
-        </div>
-      )}
-    </DashboardLayout>
-  )
+  return <DashboardLayout title="Bookings"><div className="space-y-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Operations</p><h1 className="mt-2 text-3xl font-bold text-gray-900">Bookings</h1><p className="mt-2 max-w-xl text-sm text-gray-600">Review applicants that need attention across your packages. For a complete package view, open bookings from Packages.</p></div><button onClick={() => navigate("/packages")} className="btn-secondary">Open packages</button></div>
+  <div className="grid gap-4 sm:grid-cols-3"><Stat label="All bookings" value={bookings.length} note="Across all packages" /><Stat label="Needs review" value={pending} note="Pending operator decision" /><Stat label="Payment follow-up" value={paymentIssues} note="Outstanding balance" /></div>
+  <section className="card overflow-hidden p-0"><div className="flex flex-col gap-3 border-b border-border p-5 lg:flex-row lg:items-center lg:justify-between"><div className="relative w-full max-w-md"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg/50" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search applicant, package, or booking ID" className="input-field pl-9" /></div><div className="flex flex-wrap gap-2">{[["all", "All"], ["pending", "Needs review"], ["deposit_paid", "Payment follow-up"], ["confirmed", "Confirmed"], ["completed", "Completed"]].map(([value, label]) => <button key={value} onClick={() => setFilter(value)} className={`rounded-lg px-3 py-2 text-sm font-semibold ${filter === value ? "bg-primary text-white" : "bg-bg text-fg/70 hover:text-fg"}`}>{label}{value === "pending" ? ` (${pending})` : ""}</button>)}</div></div>{visibleBookings.length === 0 ? <p className="p-12 text-center text-fg/60">No bookings match this view.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-bg text-xs uppercase tracking-wider text-fg/60"><tr><th className="px-5 py-3">Applicant</th><th className="px-5 py-3">Package</th><th className="px-5 py-3">Booking</th><th className="px-5 py-3">Payment</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Action</th></tr></thead><tbody className="divide-y divide-border">{visibleBookings.map((booking) => <tr key={booking.id} onClick={() => navigate(`/bookings/${booking.id}`)} className="cursor-pointer hover:bg-bg/60"><td className="px-5 py-4"><p className="font-semibold text-fg">{booking.pilgrimName || "Applicant"}</p><p className="mt-1 flex items-center gap-1 text-xs text-fg/60"><Users className="size-3" /> {booking.numberOfPilgrims || 1} pilgrim(s)</p></td><td className="px-5 py-4"><p className="font-semibold text-fg">{booking.packageName || booking.package?.title || "Package"}</p><button onClick={(event) => { event.stopPropagation(); navigate(`/packages/${booking.packageId}`) }} className="mt-1 text-xs font-semibold text-primary hover:underline">Open package</button></td><td className="px-5 py-4 font-medium">{booking.bookingRef || `#${booking.id}`}</td><td className="px-5 py-4"><p className="font-semibold">{money(booking.paymentBreakdown?.totalPaid ?? booking.amountPaid)} / {money(booking.paymentBreakdown?.totalAmountPayable ?? booking.totalAmount)}</p><p className="mt-1 text-xs text-fg/60">{booking.paymentBreakdown?.registration?.status || "Payment pending"}</p></td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone[booking.status] || "bg-gray-100 text-gray-700"}`}>{String(booking.status || "pending").replaceAll("_", " ")}</span></td><td className="px-5 py-4">{booking.status === "pending" ? <div className="flex gap-2"><button onClick={(event) => handleStatusUpdate(event, booking.id, "confirmed")} disabled={updating === booking.id} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white">Accept</button><button onClick={(event) => handleStatusUpdate(event, booking.id, "cancelled")} disabled={updating === booking.id} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600">Decline</button></div> : <span className="font-semibold text-primary">Review</span>}</td></tr>)}</tbody></table></div>}</section></div></DashboardLayout>
 }
 
-export default BookingsScreen
+function Stat({ label, value, note }) { return <div className="card p-5"><p className="text-xs font-semibold uppercase tracking-wider text-fg/60">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-fg/60">{note}</p></div> }

@@ -4,9 +4,10 @@ import { useAuth } from "../../context/AuthContext"
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: "📊" },
   { name: "Packages", href: "/packages", icon: "📦" },
-  { name: "Pilgrims", href: "/bookings", icon: "👤" },
+  { name: "Bookings", href: "/bookings", icon: "👤" },
+  { name: "Shared Documents", href: "/shared-documents", icon: "📄" },
   { name: "Verification", href: "/verification", icon: "🛡️" },
-  { name: "Financial", href: "/financial", icon: "💰" },
+  { name: "Payments", href: "/financial", icon: "💰" },
   { name: "Commissions", href: "/financial/commissions", icon: "🤝" },
   { name: "Promos & Discounts", href: "/promos", icon: "🏷️" },
   { name: "Settings", href: "/settings", icon: "⚙️" },

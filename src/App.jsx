@@ -20,7 +20,10 @@ import DashboardScreen from "./screens/Dashboard/DashboardScreen.jsx"
 import PackagesScreen from "./screens/Packages/PackagesScreen.jsx"
 import CreatePackageScreen from "./screens/Packages/CreatePackageScreen.jsx"
 import EditPackageScreen from "./screens/Packages/EditPackageScreen.jsx"
+import PackageDetailsScreen from "./screens/Packages/PackageDetailsScreen.jsx"
 import BookingsScreen from "./screens/Bookings/BookingsScreen.jsx"
+import BookingDetailsScreen from "./screens/Bookings/BookingDetailsScreen.jsx"
+import SharedDocumentsScreen from "./screens/Bookings/SharedDocumentsScreen.jsx"
 import VerificationScreen from "./screens/Verification/VerificationScreen.jsx"
 import FinancialScreen from "./screens/Financial/FinancialScreen.jsx"
 import CommissionsScreen from "./screens/Financial/CommissionsScreen.jsx"
@@ -59,7 +62,10 @@ function App() {
                 <Route path="/packages" element={<PackagesScreen />} />
                 <Route path="/packages/create" element={<CreatePackageScreen />} />
                 <Route path="/packages/:id/edit" element={<EditPackageScreen />} />
+                <Route path="/packages/:id" element={<PackageDetailsScreen />} />
                 <Route path="/bookings" element={<BookingsScreen />} />
+                <Route path="/bookings/:id" element={<BookingDetailsScreen />} />
+                <Route path="/shared-documents" element={<SharedDocumentsScreen />} />
                 <Route path="/verification" element={<VerificationScreen />} />
                 <Route path="/financial" element={<FinancialScreen />} />
                 <Route path="/financial/commissions" element={<CommissionsScreen />} />

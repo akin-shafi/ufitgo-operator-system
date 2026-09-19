@@ -1,6 +1,6 @@
 "use client"
 
-export const PackageCard = ({ package: pkg, onEdit, onDelete, isDeleting }) => {
+export const PackageCard = ({ package: pkg, onEdit, onDelete, onViewBookings, isDeleting }) => {
   const formatPrice = (price) =>
     new Intl.NumberFormat("en-NG", {
       style: "currency",
@@ -82,6 +82,12 @@ export const PackageCard = ({ package: pkg, onEdit, onDelete, isDeleting }) => {
 
       {/* Actions */}
       <div className="flex gap-3">
+        <button
+          onClick={() => onViewBookings(pkg.id)}
+          className="flex-1 rounded-lg px-4 py-2 text-sm font-medium bg-primary text-white hover:bg-primary/90 transition"
+        >
+          {pkg.booked || 0} booking{Number(pkg.booked || 0) === 1 ? "" : "s"}
+        </button>
         <button
           onClick={() => onEdit(pkg.id)}
           className="

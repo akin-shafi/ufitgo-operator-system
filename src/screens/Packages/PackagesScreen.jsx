@@ -1,91 +1,59 @@
-"use client"
-
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { Eye, Grid2X2, List, MoreHorizontal, Package as PackageIcon, Search } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { DashboardLayout } from "../../components/layout/DashboardLayout"
 import { Button } from "../../components/common/Button"
 import { Spinner } from "../../components/common/Spinner"
+import { Modal } from "../../components/common/Modal"
+import { StatusBadge } from "../../components/common/StatusBadge"
 import { usePackages } from "../../hooks/usePackages"
-import { PackageCard } from "../../components/features/packages/PackageCard"
 
-const PackagesScreen = () => {
+const money = (value) => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(Number(value || 0))
+const formatDate = (value) => value ? new Date(value).toLocaleDateString("en-NG", { day: "2-digit", month: "short", year: "numeric" }) : "-"
+const statusTone = { active: "success", draft: "neutral", expired: "warning", archived: "neutral" }
+
+export default function PackagesScreen() {
   const navigate = useNavigate()
-
-  console.log("[v0] PackagesScreen mounting...")
-
   const { packages, loading, error, deletePackage } = usePackages()
-
-  console.log("[v0] PackagesScreen state:", { packages, loading, error })
-
   const [deleting, setDeleting] = useState(null)
+  const [search, setSearch] = useState("")
+  const [status, setStatus] = useState("all")
+  const [type, setType] = useState("all")
+  const [view, setView] = useState("table")
+  const [selectedPackage, setSelectedPackage] = useState(null)
+
+  const types = useMemo(() => [...new Set(packages.map((pkg) => pkg.type).filter(Boolean))], [packages])
+  const filteredPackages = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return packages.filter((pkg) => {
+      const matchesStatus = status === "all" || pkg.status === status
+      const matchesType = type === "all" || pkg.type === type
+      const matchesSearch = !term || `${pkg.title || ""} ${pkg.description || ""} ${pkg.goingTo || ""}`.toLowerCase().includes(term)
+      return matchesStatus && matchesType && matchesSearch
+    })
+  }, [packages, search, status, type])
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this package?")) {
-      try {
-        setDeleting(id)
-        await deletePackage(id)
-      } catch (err) {
-        alert("Failed to delete package: " + err.message)
-      } finally {
-        setDeleting(null)
-      }
-    }
+    if (!window.confirm("Are you sure you want to delete this package?")) return
+    try { setDeleting(id); await deletePackage(id); setSelectedPackage(null) } catch (requestError) { alert(`Failed to delete package: ${requestError.message}`) } finally { setDeleting(null) }
   }
 
-  const handleEdit = (id) => {
-    navigate(`/packages/${id}/edit`)
-  }
+  if (loading) return <DashboardLayout title="Packages"><div className="flex h-64 items-center justify-center"><Spinner /></div></DashboardLayout>
+  if (error) return <DashboardLayout title="Packages"><div className="card p-8 text-center text-red-600">{error}<Button className="ml-4" onClick={() => window.location.reload()}>Try again</Button></div></DashboardLayout>
 
-  if (loading) {
-    return (
-      <DashboardLayout title="My Packages">
-        <div className="flex items-center justify-center h-64">
-          <Spinner />
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  if (error) {
-    return (
-      <DashboardLayout title="My Packages">
-        <div className="text-center py-12">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  return (
-    <DashboardLayout title="My Packages">
-      <div className="mb-6 flex justify-between items-center">
-        <p className="text-gray-600">
-          You have {packages.length} package{packages.length !== 1 ? "s" : ""}
-        </p>
-        <Button onClick={() => navigate("/packages/create")}>Create New Package</Button>
-      </div>
-
-      {packages.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-600 mb-4">You haven't created any packages yet</p>
-          <Button onClick={() => navigate("/packages/create")}>Create Your First Package</Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {packages.map((pkg) => (
-            <PackageCard
-              key={pkg.id}
-              package={pkg}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              isDeleting={deleting === pkg.id}
-            />
-          ))}
-        </div>
-      )}
-    </DashboardLayout>
-  )
+  return <DashboardLayout title="Packages"><div className="space-y-6"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">Catalogue</p><h1 className="mt-2 text-3xl font-bold text-gray-900">Packages</h1><p className="mt-2 text-sm text-gray-600">Compare package health, capacity, bookings, and departure readiness in one place.</p></div><Button onClick={() => navigate("/packages/create")}>Create package</Button></div>
+    <div className="grid gap-4 sm:grid-cols-3"><Stat label="Total packages" value={packages.length} note="Across your catalogue" /><Stat label="Active packages" value={packages.filter((pkg) => pkg.status === "active").length} note="Currently offered" /><Stat label="Total bookings" value={packages.reduce((sum, pkg) => sum + Number(pkg.booked || 0), 0)} note="Across all packages" /></div>
+    <section className="card p-3"><div className="flex flex-wrap items-center gap-2"><div className="relative min-w-[220px] flex-[1_1_300px]"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search packages or destinations" className="input-field pl-9" /></div><select value={status} onChange={(event) => setStatus(event.target.value)} className="input-field h-10 w-[150px] shrink-0"><option value="all">All statuses</option><option value="active">Active</option><option value="draft">Draft</option><option value="expired">Expired</option><option value="archived">Archived</option></select><select value={type} onChange={(event) => setType(event.target.value)} className="input-field h-10 w-[140px] shrink-0"><option value="all">All types</option>{types.map((item) => <option key={item} value={item}>{String(item).replaceAll("_", " ")}</option>)}</select><div className="flex h-10 shrink-0 rounded-lg border border-border bg-bg p-1"><button type="button" title="Table view" onClick={() => setView("table")} className={`rounded-md px-2 ${view === "table" ? "bg-card text-primary shadow-sm" : "text-fg/50"}`}><List className="size-4" /></button><button type="button" title="Card view" onClick={() => setView("cards")} className={`rounded-md px-2 ${view === "cards" ? "bg-card text-primary shadow-sm" : "text-fg/50"}`}><Grid2X2 className="size-4" /></button></div></div></section>
+    {filteredPackages.length === 0 ? <div className="card p-12 text-center text-gray-600">No packages match your filters.</div> : view === "table" ? <PackageTable packages={filteredPackages} navigate={navigate} onView={setSelectedPackage} onDelete={handleDelete} deleting={deleting} /> : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{filteredPackages.map((pkg) => <PackageTile key={pkg.id} pkg={pkg} onView={() => setSelectedPackage(pkg)} onBookings={() => navigate(`/packages/${pkg.id}`)} onEdit={() => navigate(`/packages/${pkg.id}/edit`)} />)}</div>}
+    {selectedPackage && <PackageQuickView pkg={selectedPackage} onClose={() => setSelectedPackage(null)} onBookings={() => navigate(`/packages/${selectedPackage.id}`)} onEdit={() => navigate(`/packages/${selectedPackage.id}/edit`)} onDelete={() => handleDelete(selectedPackage.id)} />}
+  </div></DashboardLayout>
 }
 
-export default PackagesScreen
+function PackageTable({ packages, navigate, onView, onDelete, deleting }) { return <section className="card overflow-hidden p-0"><div className="overflow-x-auto"><table className="ui-table min-w-[780px]"><thead><tr><th>Package</th><th>Status</th><th>Price</th><th>Bookings</th><th>Departure</th><th>Payment plan</th><th className="sticky right-0 z-10">Actions</th></tr></thead><tbody>{packages.map((pkg) => <tr key={pkg.id} onClick={() => onView(pkg)} className="cursor-pointer hover:bg-bg/50"><td><p className="font-semibold text-fg hover:text-primary">{pkg.title || "Untitled package"}</p><p className="mt-1 max-w-[220px] truncate text-xs text-fg/60">{pkg.goingTo || pkg.description || "No destination provided"}</p></td><td><StatusBadge tone={statusTone[pkg.status] || "neutral"}>{pkg.status || "unknown"}</StatusBadge></td><td className="font-semibold">{money(pkg.price)}</td><td><button onClick={(event) => { event.stopPropagation(); navigate(`/packages/${pkg.id}`) }} className="font-semibold text-primary hover:underline">{pkg.booked || 0} bookings</button><span className="ml-1 text-xs text-fg/50">of {pkg.capacity || 0}</span></td><td className="text-fg/70">{formatDate(pkg.departureDate)}</td><td className="text-xs text-fg/70">{pkg.installmentEligible ? "Installments" : "Full payment"}{pkg.registrationFeeEnabled ? " · Registration fee" : ""}</td><td className="sticky right-0 z-10 bg-card"><div className="flex items-center gap-2"><button title="View package" onClick={(event) => { event.stopPropagation(); onView(pkg) }} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-primary hover:border-primary">View</button><button title="Edit package" onClick={(event) => { event.stopPropagation(); navigate(`/packages/${pkg.id}/edit`) }} className="rounded-lg border border-border px-3 py-2 text-xs font-semibold hover:border-primary hover:text-primary">Edit</button><button title="Delete package" onClick={(event) => { event.stopPropagation(); onDelete(pkg.id) }} disabled={deleting === pkg.id} className="btn-danger min-h-0 px-3 py-2 text-xs">{deleting === pkg.id ? "..." : "Delete"}</button></div></td></tr>)}</tbody></table></div><div className="border-t border-border px-5 py-3 text-xs text-fg/60">Showing {packages.length} package{packages.length === 1 ? "" : "s"}</div></section> }
+
+function PackageTile({ pkg, onView, onBookings, onEdit }) { return <article className="card p-5"><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><PackageIcon className="size-5" /></span><div className="min-w-0"><h2 className="truncate font-semibold">{pkg.title || "Untitled package"}</h2><p className="text-xs capitalize text-fg/60">{pkg.type || "Package"}</p></div></div><StatusBadge tone={statusTone[pkg.status] || "neutral"}>{pkg.status}</StatusBadge></div><p className="mt-4 line-clamp-2 text-sm text-fg/65">{pkg.description || "No package description"}</p><div className="mt-5 grid grid-cols-2 gap-3 text-sm"><div><p className="text-xs text-fg/50">Price</p><p className="mt-1 font-bold">{money(pkg.price)}</p></div><div><p className="text-xs text-fg/50">Bookings</p><p className="mt-1 font-bold text-primary">{pkg.booked || 0}/{pkg.capacity || 0}</p></div></div><div className="mt-5 flex gap-2"><button onClick={onView} className="flex-1 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:border-primary hover:text-primary">Quick view</button><button onClick={onBookings} className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">Bookings</button><button onClick={onEdit} title="Edit package" className="rounded-lg border border-border p-2 hover:border-primary"><MoreHorizontal className="size-4" /></button></div></article> }
+
+function PackageQuickView({ pkg, onClose, onBookings, onEdit, onDelete }) { return <Modal open title="Package preview" description={`${pkg.status} · ${pkg.type || "Package"}`} onClose={onClose} size="lg"><h2 className="text-2xl font-bold text-fg">{pkg.title || "Untitled package"}</h2><div className="mt-6 grid gap-4 sm:grid-cols-2"><Detail label="Price" value={money(pkg.price)} /><Detail label="Bookings" value={`${pkg.booked || 0} of ${pkg.capacity || 0}`} /><Detail label="Departure" value={formatDate(pkg.departureDate)} /><Detail label="Return" value={formatDate(pkg.returnDate)} /><Detail label="Payment" value={pkg.installmentEligible ? "Installments available" : "Full payment"} /><Detail label="Registration" value={pkg.registrationFeeEnabled ? money(pkg.registrationFeeAmount) : "Not enabled"} /></div><div className="mt-5 rounded-lg bg-bg p-4"><p className="text-xs font-semibold uppercase tracking-wider text-fg/50">Description</p><p className="mt-2 text-sm leading-6 text-fg/80">{pkg.description || "No package description provided."}</p></div><div className="mt-6 flex flex-wrap justify-end gap-2"><button onClick={onDelete} className="btn-danger mr-auto">Delete</button><button onClick={onEdit} className="btn-secondary">Edit package</button><button onClick={onBookings} className="btn-primary">View bookings</button></div></Modal> }
+
+function Detail({ label, value }) { return <div><p className="text-xs uppercase tracking-wider text-fg/50">{label}</p><p className="mt-1 font-semibold text-fg">{value || "-"}</p></div> }
+function Stat({ label, value, note }) { return <div className="card p-5"><p className="text-xs font-semibold uppercase tracking-wider text-fg/60">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-fg/60">{note}</p></div> }

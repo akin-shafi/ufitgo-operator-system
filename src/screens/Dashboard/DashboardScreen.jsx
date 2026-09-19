@@ -157,7 +157,7 @@ export default function DashboardScreen() {
                 {bookings.slice(0, 5).map((booking) => (
                   <div
                     key={booking.id}
-                    onClick={() => navigate("/bookings")}
+                    onClick={() => navigate(`/bookings/${booking.id}`)}
                     className="flex justify-between items-center p-3 rounded-lg
                                bg-bg border border-border cursor-pointer hover:border-primary/30 transition-colors"
                   >
@@ -166,8 +166,9 @@ export default function DashboardScreen() {
                         {booking.pilgrimName}
                       </p>
                       <p className="text-sm text-fg/70">
-                        {booking.numberOfPilgrims} pilgrim(s) - N
-                        {Number(booking.totalAmount).toLocaleString()}
+                        {booking.numberOfPilgrims} pilgrim(s) · ₦
+                        {Number(booking.paymentBreakdown?.totalPaid ?? booking.amountPaid ?? 0).toLocaleString()}
+                        {booking.paymentBreakdown?.totalAmountPayable ? ` / ₦${Number(booking.paymentBreakdown.totalAmountPayable).toLocaleString()}` : " paid"}
                       </p>
                     </div>
 

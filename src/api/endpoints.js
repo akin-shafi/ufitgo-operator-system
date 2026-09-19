@@ -34,6 +34,7 @@ export const ENDPOINTS = {
   BOOKINGS: {
     LIST: "/operator/bookings",
     URGENT_TASKS: "/operator/bookings/urgent-tasks",
+    BY_PACKAGE: (packageId) => `/operator/bookings/package/${packageId}`,
     GET: (id) => `/operator/bookings/${id}`,
     UPDATE_STATUS: (id) => `/operator/bookings/${id}/status`,
   },

@@ -27,19 +27,65 @@
    ================================ */
 @layer components {
   .btn-primary {
-    @apply bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply bg-card text-fg border border-border px-4 py-2 rounded-lg hover:bg-bg transition-colors;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-fg shadow-sm transition-colors hover:bg-bg focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-danger {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-danger/25 bg-card px-4 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger/10 focus:outline-none focus:ring-2 focus:ring-danger/20 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .input-field {
-    @apply w-full px-4 py-2 rounded-lg bg-bg text-fg border border-border focus:ring-2 focus:ring-primary focus:border-transparent outline-none;
+    @apply w-full min-h-10 rounded-lg border border-border bg-bg px-3 text-sm text-fg outline-none transition placeholder:text-fg/40 focus:border-primary focus:ring-2 focus:ring-primary/15;
   }
 
   .card {
-    @apply bg-card text-fg rounded-lg border border-border shadow-sm p-6;
+    @apply rounded-xl border border-border bg-card p-6 text-fg shadow-card;
+  }
+
+  .ui-icon-button {
+    @apply inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-fg/55 transition hover:bg-bg hover:text-fg focus:outline-none focus:ring-2 focus:ring-primary/30;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize;
+  }
+
+  .status-badge-success { @apply border-success/20 bg-success/10 text-success; }
+  .status-badge-warning { @apply border-warning/20 bg-warning/10 text-warning; }
+  .status-badge-danger { @apply border-danger/20 bg-danger/10 text-danger; }
+  .status-badge-info { @apply border-info/20 bg-info/10 text-info; }
+  .status-badge-neutral { @apply border-border bg-bg text-fg/65; }
+
+  .ui-modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[2px];
+  }
+
+  .ui-modal {
+    @apply max-h-[min(720px,calc(100vh-2rem))] w-full overflow-hidden rounded-2xl border border-border bg-card shadow-2xl;
+  }
+
+  .ui-modal-header {
+    @apply flex items-start justify-between gap-4 border-b border-border px-6 py-5;
+  }
+
+  .ui-modal-title { @apply truncate text-xl font-bold text-fg; }
+  .ui-modal-description { @apply mt-1 text-sm text-fg/60; }
+  .ui-modal-body { @apply max-h-[calc(100vh-9rem)] overflow-y-auto p-6; }
+
+  .ui-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+
+  .ui-table th {
+    @apply bg-bg px-5 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-fg/55;
+  }
+
+  .ui-table td {
+    @apply border-t border-border px-5 py-4 align-middle;
   }
 }
 
