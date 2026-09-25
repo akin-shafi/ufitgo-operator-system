@@ -45,7 +45,8 @@ apiClient.interceptors.response.use(
         localStorage.removeItem("login_time")
 
         if (window.location.pathname !== "/login") {
-          window.location.replace("/login")
+          const returnTo = `${window.location.pathname}${window.location.search}`
+          window.location.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`)
         }
       }
     }

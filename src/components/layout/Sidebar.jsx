@@ -10,6 +10,7 @@ const navigation = [
   { name: "Payments", href: "/financial", icon: "💰" },
   { name: "Commissions", href: "/financial/commissions", icon: "🤝" },
   { name: "Promos & Discounts", href: "/promos", icon: "🏷️" },
+  { name: "Policy reviews", href: "/policy-drafts", icon: "📝" },
   { name: "Settings", href: "/settings", icon: "⚙️" },
 ]
 

@@ -61,6 +61,11 @@ export const ENDPOINTS = {
     CHANGE_PASSWORD: "/operator/auth/change-password",
     NOTIFICATIONS: "/operator/settings/notifications",
   },
+  POLICY_DRAFTS: {
+    LIST: "/operator/policies/drafts",
+    GET: (id) => `/operator/policies/drafts/${id}`,
+    UPDATE: (id) => `/operator/policies/drafts/${id}`,
+  },
 
   FINANCIAL: {
     SUMMARY: "/operator/wallet/payment-stats",

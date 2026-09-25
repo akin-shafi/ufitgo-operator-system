@@ -34,6 +34,8 @@ import PolicyAgreementScreen from "./screens/Settings/PolicyAgreementScreen.jsx"
 import PTARequestsScreen from "./screens/PTA/PTARequestsScreen.jsx"
 import { PromosScreen } from "./components/features/promos/PromosScreen.jsx"
 import { CreatePromoScreen } from "./components/features/promos/CreatePromoScreen.jsx"
+import PolicyDraftsScreen from "./screens/Settings/PolicyDraftsScreen.jsx"
+import PolicyDraftReviewScreen from "./screens/Settings/PolicyDraftReviewScreen.jsx"
 
 function App() {
   return (
@@ -72,6 +74,8 @@ function App() {
                 <Route path="/settlement/setup" element={<SettlementSetupScreen />} />
                 <Route path="/settings" element={<SettingsScreen />} />
                 <Route path="/settings/profile" element={<Profile />} />
+                <Route path="/policy-drafts" element={<PolicyDraftsScreen />} />
+                <Route path="/policy-drafts/:id" element={<PolicyDraftReviewScreen />} />
                 <Route path="/pta-requests" element={<PTARequestsScreen />} />
                 <Route path="/promos" element={<PromosScreen />} />
                 <Route path="/promos/create" element={<CreatePromoScreen />} />

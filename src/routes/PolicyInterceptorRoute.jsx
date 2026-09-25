@@ -45,7 +45,7 @@ export const PolicyInterceptorRoute = () => {
   }
 
   if (operator && !hasAcceptedLatest && location.pathname !== "/policy-agreement") {
-    return <Navigate to="/policy-agreement" replace />
+    return <Navigate to="/policy-agreement" replace state={{ returnTo: `${location.pathname}${location.search}` }} />
   }
 
   return <Outlet />

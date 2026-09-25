@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { Eye, EyeOff, Quote, Star } from "lucide-react"
 import { useAuth } from "../../context/AuthContext.jsx"
 import { Input } from "../../components/common/Input"
@@ -34,6 +34,7 @@ function LoginScreen() {
 
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,7 +53,8 @@ function LoginScreen() {
     try {
       await login(email, password)
       localStorage.setItem("login_time", Date.now().toString())
-      navigate("/dashboard")
+      const returnTo = new URLSearchParams(location.search).get("returnTo")
+      navigate(returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/dashboard", { replace: true })
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.")
     } finally {

@@ -16,6 +16,7 @@ const PolicyAgreementScreen = () => {
 
   // Are they here voluntarily from Settings, or forced via interceptor?
   const isVoluntary = location.state?.isVoluntary || false
+  const returnTo = location.state?.returnTo
 
   useEffect(() => {
     fetchStatus()
@@ -43,7 +44,7 @@ const PolicyAgreementScreen = () => {
       // If forced, navigate to dashboard root after accepting.
       // If voluntary, just refetch status.
       if (!isVoluntary) {
-        navigate("/")
+        navigate(returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/", { replace: true })
       } else {
         await fetchStatus()
       }
