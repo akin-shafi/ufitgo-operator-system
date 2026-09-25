@@ -101,8 +101,8 @@ export default function SignupSuccess() {
 
           <p className="text-sm opacity-60 mt-6">
             Need help? Contact support at{" "}
-            <a href="mailto:support@ufitgo.com" className="text-primary underline">
-              support@ufitgo.com
+            <a href="mailto:support@ufitgo.ng" className="text-primary underline">
+              support@ufitgo.ng
             </a>
           </p>
           <p className="text-center text-[11px] opacity-40 mt-4">
