@@ -65,6 +65,8 @@ export const ENDPOINTS = {
     LIST: "/operator/policies/drafts",
     GET: (id) => `/operator/policies/drafts/${id}`,
     UPDATE: (id) => `/operator/policies/drafts/${id}`,
+    REQUEST_REVIEW: (id) => `/operator/policies/drafts/${id}/request-review`,
+    APPROVE: (id) => `/operator/policies/drafts/${id}/approve`,
   },
 
   FINANCIAL: {
