@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Input } from "../../common/Input"
 import { Button } from "../../common/Button"
 import { usePackages } from "../../../hooks/usePackages.js"
-import { mapFormPayloadToApiPayload } from "../../../utils/packageMapper.js"
+import { classificationChanged, getClassificationError, mapFormPayloadToApiPayload, requiresSeasonYear } from "../../../utils/packageMapper.js"
 
 const INCLUSIONS_LIST = [
   { key: "visa", label: "Visa Processing" },
@@ -18,6 +18,8 @@ const INCLUSIONS_LIST = [
 export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
   const [dateError, setDateError] = useState("")
   const [generating, setGenerating] = useState(false)
+  const [classificationError, setClassificationError] = useState("")
+  const [reviewRequired, setReviewRequired] = useState(false)
 
   const {
     packageTypes = [],
@@ -33,6 +35,8 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
     itinerary: initialData?.itinerary || "",
 
     packageType: initialData?.packageType || "",
+    season: initialData?.season ?? null,
+    seasonYear: initialData?.seasonYear ?? "",
     serviceLevel: initialData?.serviceLevel || "",
 
     isGroupPackage: initialData?.isGroupPackage ?? true,
@@ -91,6 +95,7 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
         description: description || prev.description,
         itinerary: itinerary || prev.itinerary,
       }))
+      setReviewRequired(true)
     } catch (err) {
       console.error("Unexpected AI error:", err)
     } finally {
@@ -183,6 +188,9 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const error = getClassificationError(formData, initialData, reviewRequired)
+    setClassificationError(error)
+    if (error) return
     if (!installmentValid || totalPrice === 0) return
 
     const payload = {
@@ -203,7 +211,7 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
       extensionIds: formData.extensionIds,
     }
 
-    await onSubmit(mapFormPayloadToApiPayload(payload))
+    await onSubmit(mapFormPayloadToApiPayload(payload, initialData))
   }
 
   return (
@@ -229,7 +237,11 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
                 <label className="block text-sm font-medium text-fg mb-2">Package Type</label>
                 <select
                   value={formData.packageType}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, packageType: e.target.value }))}
+                  onChange={(e) => {
+                    setClassificationError("")
+                    setFormData((prev) => ({ ...prev, packageType: e.target.value, season: null, seasonYear: "" }))
+                  }}
+                  required
                   disabled={metadataLoading}
                   className="w-full bg-bg border border-border rounded-xl px-4 py-3 text-fg"
                 >
@@ -261,8 +273,53 @@ export const PackageForm = ({ initialData, onSubmit, onCancel }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <Input label="Departure Date *" name="departureDate" type="date" value={formData.departureDate} onChange={handleChange} required />
-              <Input label="Return Date *" name="returnDate" type="date" value={formData.returnDate} onChange={handleChange} required />
+              {formData.packageType === "umrah" && (
+                <label className="block text-sm font-medium text-fg">
+                  Selling season
+                  <select
+                    aria-label="Selling season"
+                    value={formData.season || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, season: e.target.value || null, seasonYear: "" }))}
+                    className="mt-2 w-full bg-bg border border-border rounded-xl px-4 py-3"
+                  >
+                    <option value="">General Umrah (no special season)</option>
+                    <option value="ramadan">Ramadan Umrah</option>
+                  </select>
+                </label>
+              )}
+              {requiresSeasonYear(formData) && (
+                <Input
+                  label="Selling season year"
+                  aria-label="Selling season year"
+                  name="seasonYear"
+                  type="number"
+                  min="2000"
+                  max="2200"
+                  step="1"
+                  placeholder="Select the confirmed year"
+                  value={formData.seasonYear}
+                  onChange={handleChange}
+                  required={reviewRequired || classificationChanged(formData, initialData)}
+                />
+              )}
+            </div>
+            {initialData && requiresSeasonYear(formData) && !formData.seasonYear && (
+              <p className="text-amber-600 text-sm my-3" role="status">
+                Legacy package: selling season year is unclassified. Unrelated edits can be saved,
+                but changing its category or season requires a confirmed year.
+              </p>
+            )}
+            {reviewRequired && (
+              <p className="text-amber-600 text-sm my-3" role="status">
+                Review AI-generated content and confirm the package type, season and selling year before saving.
+                AI suggestions do not classify packages or supply a year.
+              </p>
+            )}
+            {classificationError && <p className="text-red-500 text-sm my-3" role="alert">{classificationError}</p>}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <Input label="Departure Date" name="departureDate" type="date" value={formData.departureDate} onChange={handleChange} />
+              <Input label="Return Date" name="returnDate" type="date" value={formData.returnDate} onChange={handleChange} />
             </div>
 
             {dateError && <p className="text-red-500 text-sm mt-2">{dateError}</p>}

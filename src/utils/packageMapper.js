@@ -24,6 +24,8 @@ export const mapApiPackageToFormInitialData = (pkg) => {
     itinerary: pkg.itinerary || "",
 
     packageType: pkg.type || "",
+    season: pkg.season ?? null,
+    seasonYear: pkg.seasonYear ?? "",
     serviceLevel: pkg.serviceLevel || "",
 
     prices: {
@@ -55,7 +57,31 @@ export const mapApiPackageToFormInitialData = (pkg) => {
   }
 }
 
-export const mapFormPayloadToApiPayload = (payload) => {
+export const requiresSeasonYear = (data) =>
+  data.packageType === "hajj" || data.season === "ramadan"
+
+export const classificationChanged = (data, initialData) =>
+  !initialData ||
+  data.packageType !== initialData.packageType ||
+  (data.season || null) !== (initialData.season || null) ||
+  String(data.seasonYear || "") !== String(initialData.seasonYear || "")
+
+export const getClassificationError = (data, initialData, reviewRequired = false) => {
+  if (!data.packageType) return "Select a package type."
+  if (data.season && (data.season !== "ramadan" || data.packageType !== "umrah")) {
+    return "Ramadan season is only valid for Umrah packages."
+  }
+  const hasYear = data.seasonYear !== "" && data.seasonYear != null
+  if (hasYear && (!Number.isInteger(Number(data.seasonYear)) || Number(data.seasonYear) < 2000 || Number(data.seasonYear) > 2200)) {
+    return "Season year must be a whole number from 2000 to 2200."
+  }
+  if (requiresSeasonYear(data) && !hasYear && (reviewRequired || classificationChanged(data, initialData))) {
+    return "Select the selling season year after reviewing the package. Do not guess from its title."
+  }
+  return ""
+}
+
+export const mapFormPayloadToApiPayload = (payload, initialData) => {
   const inclusions = Object.entries(payload.inclusions || {})
     .filter(([, enabled]) => enabled)
     .map(([key]) => key)
@@ -65,13 +91,19 @@ export const mapFormPayloadToApiPayload = (payload) => {
   return {
     title: payload.name,
     description: payload.description,
-    type: payload.packageType,
+    ...(classificationChanged(payload, initialData) ? {
+      type: payload.packageType,
+      season: payload.packageType === "umrah" ? payload.season || null : null,
+      seasonYear: requiresSeasonYear(payload) && payload.seasonYear !== "" && payload.seasonYear != null
+        ? Number(payload.seasonYear)
+        : null,
+    } : {}),
     serviceLevel: payload.serviceLevel,
     price: payload.price,
     duration: payload.duration,
     capacity: payload.maxPilgrims,
-    departureDate: payload.departureDate,
-    returnDate: payload.returnDate,
+    departureDate: payload.departureDate || null,
+    returnDate: payload.returnDate || null,
     inclusions,
 
     installmentEligible: payload.installmentsEnabled,
