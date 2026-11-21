@@ -1,4 +1,4 @@
-import { AlertCircle, ExternalLink, FileText, Info, Lock, ShieldCheck, User, X } from "lucide-react"
+import { AlertCircle, Download, ExternalLink, FileText, Info, Lock, ShieldCheck, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { apiClient } from "../../../api/client"
 import { Spinner } from "../../common/Spinner"
@@ -31,8 +31,10 @@ function HelpModal({ onClose }) {
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-fg/80">
           <li>UfitGo collects each traveller&apos;s passport and photo, checks them, and releases them to you for visa processing.</li>
           <li>Names, gender, date of birth and nationality were copied by UfitGo staff from the passport data page. Always confirm against the passport image before submitting a visa.</li>
-          <li>Each file opens through a secure link that lasts 5 minutes. Click Open again if it expires. Download only what you need for the visa application.</li>
-          <li>Every file opened is recorded with your login email, and UfitGo can see this record.</li>
+          <li><strong>Open</strong> shows a file in a new tab. <strong>Download</strong> saves it to your device, named after the traveller (e.g. YUSUF-AMINA-passport.jpg), ready to upload to the visa portal.</li>
+          <li>Each link lasts 5 minutes. Click again if it expires.</li>
+          <li>Every view and download is recorded with your login email, and UfitGo can see this record.</li>
+          <li>Downloaded files contain personal data. Store them securely, use them only for this traveller&apos;s visa, and delete them once the visa is issued.</li>
           <li>If a document changes, UfitGo sends an update by email. Always use the latest version shown here.</li>
           <li>Access ends 60 days after departure, or earlier if UfitGo withdraws it. Contact UfitGo if you need more time.</li>
         </ul>
@@ -68,6 +70,27 @@ export function ReleasedDocumentsPanel({ bookingId }) {
       cancelled = true
     }
   }, [bookingId])
+
+  const downloadDocument = async (documentId) => {
+    setOpening(`${documentId}:download`)
+    setOpenError(null)
+    try {
+      const response = await apiClient.post(`/operator/document-releases/${bookingId}/documents/${documentId}/open?mode=download`)
+      const url = (response?.data || response)?.url
+      if (!url) throw new Error("Unable to download document")
+      // The signed link tells the browser to save the file, so the current page stays open
+      const link = document.createElement("a")
+      link.href = url
+      link.rel = "noopener"
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      setOpenError(error?.message || "Unable to download document. Please try again.")
+    } finally {
+      setOpening(null)
+    }
+  }
 
   const openDocument = async (documentId) => {
     setOpening(documentId)
@@ -134,7 +157,7 @@ export function ReleasedDocumentsPanel({ bookingId }) {
           <div className="mt-5 flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
             <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
             <p className="text-fg/80">
-              Released by UfitGo for visa processing{data.lastSentAt ? `, last updated ${formatDate(data.lastSentAt)}` : ""}. Access until <strong>{formatDate(data.accessUntil)}</strong>. Files open through secure 5-minute links and every view is recorded.
+              Released by UfitGo for visa processing{data.lastSentAt ? `, last updated ${formatDate(data.lastSentAt)}` : ""}. Access until <strong>{formatDate(data.accessUntil)}</strong>. Files open or download through secure 5-minute links, and every view and download is recorded.
             </p>
           </div>
 
@@ -167,14 +190,24 @@ export function ReleasedDocumentsPanel({ bookingId }) {
                           {[doc.documentNumber ? `No. ${doc.documentNumber}` : null, doc.expiryDate ? `Expires ${formatDate(doc.expiryDate)}` : null, doc.status === "VERIFIED" ? "Checked by UfitGo" : doc.stale ? "Expired" : "Not yet checked by UfitGo"].filter(Boolean).join(" · ")}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => void openDocument(doc.documentId)}
-                        disabled={opening === doc.documentId}
-                        className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
-                      >
-                        {opening === doc.documentId ? "Opening…" : <>Open <ExternalLink size={12} /></>}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void openDocument(doc.documentId)}
+                          disabled={opening !== null}
+                          className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50"
+                        >
+                          {opening === doc.documentId ? "Opening…" : <>Open <ExternalLink size={12} /></>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void downloadDocument(doc.documentId)}
+                          disabled={opening !== null}
+                          className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                        >
+                          {opening === `${doc.documentId}:download` ? "Preparing…" : <>Download <Download size={12} /></>}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -36,7 +36,7 @@ const SharedDocumentsScreen = () => {
         <Info className="mt-0.5 size-5 shrink-0 text-primary" />
         <div className="space-y-1">
           <p><strong>How this works:</strong> UfitGo collects and checks each traveller&apos;s documents, then releases them here. Your document contacts get an email each time. The email never contains the files.</p>
-          <p>Open a booking to see each traveller&apos;s details and files. Files open through secure 5-minute links, and every view is recorded. Access ends 60 days after departure.</p>
+          <p>Open a booking to see each traveller&apos;s details and files. You can open or download each file. Links last 5 minutes, and every view and download is recorded. Access ends 60 days after departure.</p>
         </div>
       </div>
 
