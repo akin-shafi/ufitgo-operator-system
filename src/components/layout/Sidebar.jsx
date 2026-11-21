@@ -5,7 +5,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: "📊" },
   { name: "Packages", href: "/packages", icon: "📦" },
   { name: "Bookings", href: "/bookings", icon: "👤" },
-  { name: "Shared Documents", href: "/shared-documents", icon: "📄" },
+  { name: "Traveller Documents", href: "/shared-documents", icon: "📄" },
   { name: "Verification", href: "/verification", icon: "🛡️" },
   { name: "Payments", href: "/financial", icon: "💰" },
   { name: "Commissions", href: "/financial/commissions", icon: "🤝" },

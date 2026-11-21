@@ -1,98 +1,76 @@
+import { ChevronRight, FileText, Info, Lock } from "lucide-react"
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { DashboardLayout } from "../../components/layout/DashboardLayout"
+import { Spinner } from "../../components/common/Spinner"
 import { apiClient } from "../../api/client"
-import { authService } from "../../api/services/auth.service"
 
+const formatDate = (value) =>
+  value ? new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"
+
+// Bookings whose travellers' documents UfitGo has released to this operator
 const SharedDocumentsScreen = () => {
-  const [shares, setShares] = useState([])
+  const [releases, setReleases] = useState([])
   const [loading, setLoading] = useState(true)
-  const [viewingDocs, setViewingDocs] = useState(null)
-  const [viewLoading, setViewLoading] = useState(false)
-
-  const operator = authService.getStoredOperator()
-  const operatorId = operator?.id
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!operatorId) return
     apiClient
-      .get(`/operator/document-shares?operatorId=${operatorId}`)
-      .then((data) => setShares(Array.isArray(data) ? data : []))
-      .catch(() => setShares([]))
+      .get("/operator/document-releases")
+      .then((response) => {
+        const list = response?.data || response
+        setReleases(Array.isArray(list) ? list : [])
+      })
+      .catch((requestError) => setError(requestError?.message || "Unable to load documents"))
       .finally(() => setLoading(false))
-  }, [operatorId])
-
-  const handleView = async (share) => {
-    setViewLoading(true)
-    setViewingDocs({ pilgrimName: share.data?.pilgrimName, documents: [] })
-    try {
-      const res = await fetch(share.data?.viewUrl)
-      const json = await res.json()
-      setViewingDocs({ pilgrimName: share.data?.pilgrimName, documents: json?.data || [] })
-    } catch {
-      setViewingDocs({ pilgrimName: share.data?.pilgrimName, documents: [], error: true })
-    } finally {
-      setViewLoading(false)
-    }
-  }
+  }, [])
 
   return (
-    <DashboardLayout title="Shared Documents">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-fg mb-2">Shared Travel Documents</h1>
-        <p className="text-fg/60">Passports, visas, and health cards pilgrims have shared with you.</p>
+    <DashboardLayout title="Traveller Documents">
+      <div className="mb-6">
+        <h1 className="mb-2 text-2xl font-bold text-fg">Traveller documents</h1>
+        <p className="text-fg/60">Bookings where UfitGo has released travellers&apos; passports and photos to you for visa processing.</p>
+      </div>
+
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-fg/80">
+        <Info className="mt-0.5 size-5 shrink-0 text-primary" />
+        <div className="space-y-1">
+          <p><strong>How this works:</strong> UfitGo collects and checks each traveller&apos;s documents, then releases them here. Your document contacts get an email each time. The email never contains the files.</p>
+          <p>Open a booking to see each traveller&apos;s details and files. Files open through secure 5-minute links, and every view is recorded. Access ends 60 days after departure.</p>
+        </div>
       </div>
 
       {loading ? (
-        <p className="text-fg/60">Loading...</p>
-      ) : shares.length === 0 ? (
-        <div className="card p-8 text-center text-fg/60">No documents have been shared with you yet.</div>
-      ) : (
-        <div className="space-y-4">
-          {shares.map((share) => (
-            <div key={share.id} className="card p-5 flex items-center justify-between">
-              <div>
-                <p className="font-semibold">{share.data?.pilgrimName}</p>
-                <p className="text-sm text-fg/60 mt-1">
-                  {(share.data?.documentTypes || []).join(", ").toLowerCase()} · shared{" "}
-                  {new Date(share.createdAt).toLocaleDateString()}
-                </p>
-                <p className="text-xs text-fg/40 mt-1">
-                  Expires {new Date(share.data?.expiresAt).toLocaleDateString()}
-                </p>
-              </div>
-              <button
-                onClick={() => handleView(share)}
-                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold"
-              >
-                View Documents
-              </button>
-            </div>
-          ))}
+        <div className="flex h-40 items-center justify-center"><Spinner /></div>
+      ) : error ? (
+        <div className="card p-6 text-center text-red-600">{error}</div>
+      ) : releases.length === 0 ? (
+        <div className="card flex flex-col items-center p-10 text-center">
+          <Lock className="mb-3 size-8 text-fg/40" />
+          <p className="font-semibold">No documents released yet</p>
+          <p className="mt-1 max-w-md text-sm text-fg/60">When UfitGo releases travellers&apos; documents for one of your bookings, it will appear here and your document contacts will be emailed.</p>
         </div>
-      )}
-
-      {viewingDocs && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setViewingDocs(null)}>
-          <div className="bg-bg rounded-xl p-6 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-bold mb-4">{viewingDocs.pilgrimName}'s Documents</h2>
-            {viewLoading ? (
-              <p className="text-fg/60">Loading documents...</p>
-            ) : viewingDocs.error ? (
-              <p className="text-red-600">This share link may have expired.</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {viewingDocs.documents.map((doc) => (
-                  <a key={doc.id} href={doc.viewUrl} target="_blank" rel="noreferrer" className="border border-border rounded-lg p-3 text-center">
-                    <p className="text-sm font-medium">{doc.type}</p>
-                    <img src={doc.viewUrl} alt={doc.type} className="w-full h-28 object-cover rounded mt-2" />
-                  </a>
-                ))}
+      ) : (
+        <div className="space-y-3">
+          {releases.map((release) => (
+            <Link
+              key={release.bookingId}
+              to={`/bookings/${release.bookingId}`}
+              className="card flex items-center justify-between gap-4 p-4 transition hover:border-primary"
+            >
+              <div className="flex items-start gap-3">
+                <FileText className="mt-0.5 size-5 text-primary" />
+                <div>
+                  <p className="font-bold">{release.bookingRef || `Booking #${release.bookingId}`}</p>
+                  <p className="text-sm text-fg/60">
+                    {[release.packageTitle, `${release.travelerCount} traveller${release.travelerCount === 1 ? "" : "s"}`, release.departureDate ? `Departs ${formatDate(release.departureDate)}` : null].filter(Boolean).join(" · ")}
+                  </p>
+                  <p className="mt-1 text-xs text-fg/50">Updated {formatDate(release.lastSentAt)} · Access until {formatDate(release.accessUntil)}</p>
+                </div>
               </div>
-            )}
-            <button onClick={() => setViewingDocs(null)} className="mt-4 w-full py-2 border border-border rounded-lg text-sm">
-              Close
-            </button>
-          </div>
+              <ChevronRight className="size-5 shrink-0 text-fg/40" />
+            </Link>
+          ))}
         </div>
       )}
     </DashboardLayout>
